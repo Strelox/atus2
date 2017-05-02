@@ -55,8 +55,8 @@ namespace RT_Solver
   protected:
     void Do_Bragg_ad();
     void Do_Single_Noise_Step_half(fftw_complex* psi);
-    void Do_Noise_Step_half();
-    void Do_Noise_Step_full();
+    void Do_Noise_Step_half(sequence_item& seq);
+    void Do_Noise_Step_full(sequence_item& seq);
 
     void init_cn_matrix(LIS_MATRIX *A, int N, double diag, double alpha, double dx);
     void set_cn_matrix_with_metric_noise(LIS_MATRIX A, int sign);
@@ -83,6 +83,8 @@ namespace RT_Solver
     generic_header noise_source_header;
     generic_header noise_interpol_header;
     generic_header noise_chunk_header;
+    const int no_of_chunks = 4;
+    const int noise_expansion = 8;
 
     double alpha;
 
@@ -119,9 +121,7 @@ namespace RT_Solver
       fnoise.open( m_params->Get_simulation("NOISE"), ifstream::binary );
       fnoise.read( (char*)&noise_source_header, sizeof(generic_header) );
       sliceft = new Fourier::rft_1d(m_header);
-      const int no_of_chunks = 64;
       const int chunk_size = noise_source_header.nDimX/no_of_chunks;
-      const int noise_expansion = 8;
       printf("chunk_size %i\n",chunk_size);
       noise_chunk_header = noise_source_header;
       noise_chunk_header.nDimX = chunk_size;
@@ -636,9 +636,8 @@ namespace RT_Solver
   void CRT_Propagation_1D::Do_Noise_Step_half_Wrapper ( void* ptr,
                                                         sequence_item& seq )
   {
-    std::ignore = seq;
     CRT_Propagation_1D *self = static_cast<CRT_Propagation_1D*>(ptr);
-    self->Do_Noise_Step_half();
+    self->Do_Noise_Step_half(seq);
   }
 
   /** Half step with metric noise is performed for a single wavefunction.
@@ -694,7 +693,7 @@ namespace RT_Solver
   /** Half step with metric noise is performed on all wavefunctions.
    *
    */
-  void CRT_Propagation_1D::Do_Noise_Step_half() {
+  void CRT_Propagation_1D::Do_Noise_Step_half(sequence_item& seq) {
     bool update_noise = fmod(round(fabs(10*m_header.t/m_header.dt)), 10) == 0;
     // Sanity Check, bool should alternate
     static bool last_bool = false;
@@ -703,8 +702,6 @@ namespace RT_Solver
 
     if ((not no_noise_run) && update_noise) {
       {
-        const int no_of_chunks = 16;
-        const int noise_expansion = 8;
         static int chunk_no = 0;
         const int chunk_nx = chunkft->Get_Dim_X();
         const int chunk_ny = chunkft->Get_Dim_Y();
@@ -715,6 +712,7 @@ namespace RT_Solver
         fftw_complex * chunk_out = chunkft->Getp2Out();
         fftw_complex * interpolft_out = interpolft->Getp2Out();
 
+        const int64_t interpol_nx = interpolft->Get_Dim_X();
         const int64_t Nx = chunkft->Get_Dim_X();
         const int64_t Nyred = chunkft->Get_red_Dim();
         const int64_t shifti = interpolft->Get_Dim_X() - chunkft->Get_Dim_X();
@@ -724,25 +722,46 @@ namespace RT_Solver
         double chunk_factor = m_header.t/m_header.dt/(chunk_nx*noise_expansion);
         int current_chunk = floor((m_header.t+0.25*m_header.dt)/m_header.dt/(chunk_nx*noise_expansion));
         int64_t file_position = (sizeof(generic_header)+static_cast<int>((current_chunk+1)*chunk_bytes));
-        static int64_t noise_offset = 0;
+        static int64_t noise_offset = interpol_nx;
         int64_t demanded_noise_offset = static_cast<int64_t>((chunk_factor-current_chunk)*chunk_nx*noise_expansion+0.5);;
 
-        if ( file_position != fnoise.tellg() ) {
-          if ((file_position-chunk_bytes) != fnoise.tellg()) {
-            printf("\nRewind (chirp?)\n");
-            printf("Time %f\n", m_header.t);
-            std::cout << "seek\t" << fnoise.tellg() << std::endl;
-            fnoise.seekg(file_position-chunk_bytes);
-            std::cout << "new_seek\t" << fnoise.tellg() << std::endl;
-            chunk_no = ceil(current_chunk);
-          }
+        static int chirp = 0;
+        static int chirp_chunk = 0;
+        static int64_t chirp_offset = 0;
+        static double chirp_time = -100;
+
+        if (noise_offset >= interpol_nx) {
           new_chunk = true;
-          noise_offset = 0;
         }
 
-        assert(demanded_noise_offset == noise_offset);
+        if ((chirp == 0) && (seq.no_of_chirps > 1)) {
+          std::cout << "chirps: " << seq.no_of_chirps << std::endl;
+          chirp = seq.no_of_chirps;
+          chirp_chunk = chunk_no;
+          chirp_offset = noise_offset;
+          chirp_time = m_header.t;
+        } else if ((chirp_time+m_header.dt/2.0) >= m_header.t) {
+          printf("\nRewind (chirp?)\n");
+          printf("Time %f\n", m_header.t);
+          if (chunk_no != chirp_chunk) {
+            std::cout << "chunk_no\t" << chunk_no << std::endl;
+            std::cout << "chirp_chunk\t" << chirp_chunk << std::endl;
+            std::cout << "seek\t" << fnoise.tellg() << std::endl;
+            fnoise.seekg(fnoise.tellg()-(chunk_bytes*(chunk_no - chirp_chunk)));
+            std::cout << "new_seek\t" << fnoise.tellg() << std::endl;
+            new_chunk = true;
+          }
+          chunk_no = chirp_chunk - 1;
+          std::cout << "offset\t" << noise_offset << std::endl;
+          noise_offset = chirp_offset;
+          std::cout << "new offset\t" << noise_offset << std::endl;
+          chirp--;
+        }
+
         if (new_chunk) {
           printf("\nNew chunk\n");
+          printf("chirp %i\n", chirp);
+
           std::cout << "seek\t" << fnoise.tellg() << std::endl;
           printf("chunk %i\n", chunk_no);
           printf("time %f \n\n", m_header.t);
@@ -832,9 +851,8 @@ namespace RT_Solver
   void CRT_Propagation_1D::Do_Noise_Step_full_Wrapper ( void* ptr,
                                                         sequence_item& seq )
   {
-    std::ignore = seq;
     CRT_Propagation_1D *self = static_cast<CRT_Propagation_1D*>(ptr);
-    self->Do_Noise_Step_full();
+    self->Do_Noise_Step_full(seq);
   }
 
   /** Full step with metric noise is performed on all wavefunctions.
@@ -842,9 +860,9 @@ namespace RT_Solver
    * The full step is perfomed by performing two consecutive half steps.
    *
    */
-  void CRT_Propagation_1D::Do_Noise_Step_full() {
-    Do_Noise_Step_half();
-    Do_Noise_Step_half();
+  void CRT_Propagation_1D::Do_Noise_Step_full(sequence_item& seq) {
+    Do_Noise_Step_half(seq);
+    Do_Noise_Step_half(seq);
   }
 
   /** Wrapper function for Do_Bragg_ad.

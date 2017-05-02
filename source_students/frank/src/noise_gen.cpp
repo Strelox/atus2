@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
   if (argc > 2) {
     wavefun = argv[2];
   }
-  const int no_chunks = 64;
+  const int no_chunks = 4;
   const int fak = 8;
 
   int no_of_threads = 4;
