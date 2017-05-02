@@ -50,8 +50,8 @@ int main(int argc, char *argv[])
   if (argc > 2) {
     wavefun = argv[2];
   }
-  const int no_chunks = 16;
-  const int fak = 4;
+  const int no_chunks = 64;
+  const int fak = 8;
 
   int no_of_threads = 4;
   char* envstr = getenv( "MY_NO_OF_THREADS" );

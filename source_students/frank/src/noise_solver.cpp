@@ -119,9 +119,9 @@ namespace RT_Solver
       fnoise.open( m_params->Get_simulation("NOISE"), ifstream::binary );
       fnoise.read( (char*)&noise_source_header, sizeof(generic_header) );
       sliceft = new Fourier::rft_1d(m_header);
-      const int no_of_chunks = 16;
+      const int no_of_chunks = 64;
       const int chunk_size = noise_source_header.nDimX/no_of_chunks;
-      const int noise_expansion = 4;
+      const int noise_expansion = 8;
       printf("chunk_size %i\n",chunk_size);
       noise_chunk_header = noise_source_header;
       noise_chunk_header.nDimX = chunk_size;
@@ -704,7 +704,7 @@ namespace RT_Solver
     if ((not no_noise_run) && update_noise) {
       {
         const int no_of_chunks = 16;
-        const int noise_expansion = 4;
+        const int noise_expansion = 8;
         static int chunk_no = 0;
         const int chunk_nx = chunkft->Get_Dim_X();
         const int chunk_ny = chunkft->Get_Dim_Y();
