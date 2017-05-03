@@ -228,8 +228,8 @@ namespace RT_Solver
     vector<double> m_dx_noise;
     vector<double> m_dx2_noise;
     Fourier::rft_1d *noiseft;
-    const int no_of_chunks = 4;
-    const int noise_expansion = 8;
+    const int no_of_chunks = 16;
+    const int noise_expansion = 4;
     Noise_Data *noise_data;
     double m_max_noise;
 
