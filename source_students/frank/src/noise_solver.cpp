@@ -618,6 +618,9 @@ namespace RT_Solver
                               + fps1[3]*(-d1(i+2-N) + d1(i))/2.0));
     }
 
+    for (int i = 0; i < 2*N; i++) {
+      lis_csr_set_value(A, i, i, 2.0/m_header.dt);
+    }
 
     // Five-Point-Stencil difference scheme
     // real
