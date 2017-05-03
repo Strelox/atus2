@@ -826,10 +826,19 @@ namespace RT_Solver
 
     if ((not no_noise_run) && update_noise)
     {
-      int64_t NT = static_cast<int64_t>(floor(m_header.t/noise_data->dt+0.5));
-      const double* noise = noise_data->Get_Noise(NT);
       for (int i = 0; i < m_no_of_pts; i++) {
-        m_noise[i] = m_max_noise*noise[i];
+        m_noise[i] = 0.0;
+      }
+
+      int64_t NT = static_cast<int64_t>(floor(m_header.t/noise_data->dt+0.5));
+      int nSteps = static_cast<int>(floor(seq.dt/noise_data->dt+0.5));
+      assert(nSteps > 0);
+
+      for (int j = 0; j < nSteps; j++) {
+        const double* noise = noise_data->Get_Noise(NT+j);
+        for (int i = 0; i < m_no_of_pts; i++) {
+          m_noise[i] += m_max_noise*noise[i]/nSteps;
+        }
       }
 
       double *diff_noise = noiseft->Getp2InReal();
