@@ -233,7 +233,7 @@ noise-solver params.xml 1 20 cmd gpo3 100.000_1.bin > 100.000_1.txt
      :for subdir = (format nil "if-~@[~a-~]chirp-~a~@[-g1-~a~]" strength time g1)
      :do (average-data start end filename subdir)))
 
-(defun generate-xml (strength duration &optional (chirp t) (g1 0.0) (noise 2.0))
+(defun generate-xml (strength duration &optional (chirp t) (g1 0.0))
   (loop :for str :in (ensure-list strength)
      :do (loop :for time :in (ensure-list duration)
             :do (loop :for g :in (ensure-list g1)
@@ -249,8 +249,6 @@ noise-solver params.xml 1 20 cmd gpo3 100.000_1.bin > 100.000_1.txt
   <FILENAME_3>../../inf_0.000_1.bin</FILENAME_3>
   <FILENAME_4>../../inf_zero.bin</FILENAME_4>
   <NOISE>../Noise.bin</NOISE>
-  <DX_NOISE>../dxNoise.bin</DX_NOISE>
-  <DX2_NOISE>../dx2Noise.bin</DX2_NOISE>
   <CONSTANTS>
     <laser_k>8.05289</laser_k>
     <laser_k_2>8.05289</laser_k_2>
@@ -259,9 +257,6 @@ noise-solver params.xml 1 20 cmd gpo3 100.000_1.bin > 100.000_1.txt
     <laser_dk>0</laser_dk>
     <rabi_threshold>4</rabi_threshold>
     <Noise_Amplitude>~f</Noise_Amplitude>
-    <Noise_xCorr>~f</Noise_xCorr>
-    <Noise_tCorr>~:*~f</Noise_tCorr>
-    <Noise_Sigma>1.0</Noise_Sigma>
   </CONSTANTS>
   <VCONSTANTS>
     <Amp_1>-14.0496,-14.0496</Amp_1>
@@ -278,24 +273,24 @@ noise-solver params.xml 1 20 cmd gpo3 100.000_1.bin > 100.000_1.txt
     <Beta>0.0,0.0,0.0</Beta>
   </VCONSTANTS>
   <ALGORITHM>
-    <NX>8192</NX>
+    <NX>16384</NX>
     <NY>1</NY>
     <NZ>1</NZ>
-    <XMIN>-160</XMIN>
-    <XMAX>160</XMAX>
+    <XMIN>-320</XMIN>
+    <XMAX>320</XMAX>
     <NK>25</NK>
     <NA>700</NA>
     <EPSILON>1e-6</EPSILON>
   </ALGORITHM>
   <SEQUENCE>
     <bragg_ad dt=\"0.1\" Nk=\"10\" output_freq=\"last\" pn_freq=\"last\" rabi_output_freq=\"each\">100</bragg_ad>
-    <freeprop dt=\"0.1\" Nk=\"10\" output_freq=\"last\" pn_freq=\"last\">~d</freeprop>
+    <freeprop dt=\"1\" Nk=\"100\" output_freq=\"each\" pn_freq=\"last\">~d</freeprop>
     <bragg_ad dt=\"0.1\" Nk=\"10\" output_freq=\"last\" pn_freq=\"last\" rabi_output_freq=\"last\" >200</bragg_ad>
-    <freeprop dt=\"0.1\" Nk=\"10\" output_freq=\"last\" pn_freq=\"last\">~:*~d</freeprop>
+    <freeprop dt=\"1\" Nk=\"100\" output_freq=\"each\" pn_freq=\"last\">~:*~d</freeprop>
     <bragg_ad dt=\"0.1\" Nk=\"10\" output_freq=\"last\" pn_freq=\"last\" rabi_output_freq=\"each\"~@[ chirp_mode=\"1\" no_of_chirps=\"10\"~]>100</bragg_ad>
   </SEQUENCE>
 </SIMULATION>"
-                                 str noise g (/ time 2) chirp))))))
+                                 str g (/ time 2) chirp))))))
 
 (defun bragg-solve (param-files)
   (loop :for file :in (ensure-list param-files)

@@ -140,13 +140,14 @@ namespace RT_Solver
     const int64_t shifti = interpolft->Get_Dim_X() - chunkft->Get_Dim_X();
     const int64_t Nynew = interpolft->Get_red_Dim();
 
-    std::cout << std::endl << "New Chunk " << chunk << " Old Chunk: " << current_chunk << std::endl;
+    std::cout << std::endl << "New Chunk " << chunk;
+    std::cout << " Old Chunk: " << current_chunk << std::endl;
     assert(chunk < no_of_chunks);
 
     // Read next chunk
     fnoise.seekg(sizeof(generic_header)+chunk*chunk_bytes);
     fnoise.read( (char*)chunk_in, chunk_bytes);
-    chunkft->save( "chunk_" + std::to_string(chunk) + ".bin" );
+    // chunkft->save( "chunk_" + std::to_string(chunk) + ".bin" );
 
     // Expand
     chunkft->ft(-1);
@@ -170,9 +171,9 @@ namespace RT_Solver
         interpolft_out[j+(i+shifti)*Nynew][1] = chunk_out[j+i*Nyred][1];
       }
     }
-    interpolft->save( "fichunk_" + std::to_string(chunk) + ".bin", false );
+    // interpolft->save( "fichunk_" + std::to_string(chunk) + ".bin", false );
     interpolft->ft(1);
-    interpolft->save( "ichunk_" + std::to_string(chunk) + ".bin" );
+    // interpolft->save( "ichunk_" + std::to_string(chunk) + ".bin" );
 
     current_chunk = chunk;
   }
@@ -228,8 +229,8 @@ namespace RT_Solver
     vector<double> m_dx_noise;
     vector<double> m_dx2_noise;
     Fourier::rft_1d *noiseft;
-    const int no_of_chunks = 16;
-    const int noise_expansion = 4;
+    const int noise_expansion = 8;
+    const int no_of_chunks = 64;
     Noise_Data *noise_data;
     double m_max_noise;
 
@@ -252,10 +253,10 @@ namespace RT_Solver
     for (auto seq_item : m_params->m_sequence) {
       dt = seq_item.dt;
       duration += seq_item.duration.front();
-      printf("chirps = %i\n", seq_item.no_of_chirps);
+      printf("Chirps = %i\n", seq_item.no_of_chirps);
     }
     int NT = duration/dt;
-    printf("duration %f\n", duration);
+    printf("Duration %f\n", duration);
     printf("NT %i\n", NT);
     printf("NX %i\n", m_no_of_pts);
 
@@ -827,7 +828,7 @@ namespace RT_Solver
     assert(last_bool != update_noise);
     last_bool = update_noise;
 
-    if ((not no_noise_run) && update_noise)
+    if ((not no_noise_run) && update_noise) // update noise every fullstep
     {
       for (int i = 0; i < m_no_of_pts; i++) {
         m_noise[i] = 0.0;
@@ -863,11 +864,13 @@ namespace RT_Solver
 
     double total = 0;
     int no_int_states = 2;
+    m_oftotal << std::setprecision(12);
     for( int c=0; c<no_int_states; c++ ) {
       double nParticles = this->Get_Particle_Number(c);
+      m_oftotal << nParticles << "\t";
       total += nParticles;
     }
-    m_oftotal << std::setprecision(12)  << total << std::endl;
+    m_oftotal << total << std::endl;
 
     Do_Single_Noise_Step_half(this->m_fields[0]->Getp2In());
     Do_Single_Noise_Step_half(this->m_fields[1]->Getp2In());
