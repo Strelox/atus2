@@ -40,7 +40,7 @@ sp \\\"<gpo3 -re red_Noise.bin\\\" w pm3d;
 print \\\"Noise done\\\";")
 
 (defun generate-noise (parameter-file)
-  (run (format nil "noise_gen ../~a ../inf_zero.bin" parameter-file))
+  (time (run (format nil "noise_gen ../~a ../inf_zero.bin" parameter-file)))
   (run "reduce_data Noise.bin")
 ;  (run *noise.gpl*)
   )
@@ -63,6 +63,20 @@ print \\\"Rabi done\\\"\"")
                 (error "Noise missing in ~a~%" dir))
               (format t "Solve~%")
               (time (run (format nil "noise_solver ../../~a" param-file)))))))
+
+(defun chirp-solver (start end parameter-files)
+  (loop :for param-file :in (ensure-list parameter-files)
+     :do (loop :for dir :from start :to end
+            :do
+            (uiop:with-current-directory ((ensure-directories-exist
+                                           (format nil "~a/~@[~a/~]"
+                                                   dir
+                                                   (pathname-name param-file))))
+              (format t "Run in directory: ~a~%" (uiop:getcwd))
+              (unless (every #'probe-file (list "../Noise.bin"))
+                (error "Noise missing in ~a~%" dir))
+              (format t "Solve~%")
+              (time (run "noise_solver more-chirps.xml"))))))
 
 (defun average-data (start end filename subdirs)
   (loop :for subdir :in (ensure-list subdirs)
@@ -226,6 +240,16 @@ noise-solver params.xml 1 20 cmd gpo3 100.000_1.bin > 100.000_1.txt
        :do (format out "~a~{ ~a~}~%" time (loop :for num :from start :to end
                                              :collect (visibility (format nil "~a/if-~@[~f-~]chirp-~d~@[-g1-~f~]/Chirp_5.txt" num strength time g1)))))))
 
+(defun get-avg-visibility (start end strength &optional (duration (list 1000 2000 3000 5000 10000 14000 21000)) (g1 nil))
+  (with-open-file (out (format nil "visibility-avg-~a~@[-~a~].txt" strength g1)
+                       :direction :output
+                       :if-exists :supersede
+                       :if-does-not-exist :create)
+    (loop :for time :in (ensure-list duration)
+       :do (format out "~a ~a~%" time (mean (loop :for num :from start :to end
+                                             :collect (visibility (format nil "~a/if-~@[~f-~]chirp-~d~@[-g1-~f~]/Chirp_5.txt" num strength time g1))))))))
+
+
 (defun average-files (start end filename strength
                       &optional
                         (duration (list 1000 2000 3000 5000 10000 14000 21000)) (g1 nil))
@@ -287,10 +311,66 @@ noise-solver params.xml 1 20 cmd gpo3 100.000_1.bin > 100.000_1.txt
     <freeprop dt=\"1\" Nk=\"100\" output_freq=\"each\" pn_freq=\"last\">~d</freeprop>
     <bragg_ad dt=\"0.1\" Nk=\"10\" output_freq=\"last\" pn_freq=\"last\" rabi_output_freq=\"last\" >200</bragg_ad>
     <freeprop dt=\"1\" Nk=\"100\" output_freq=\"each\" pn_freq=\"last\">~:*~d</freeprop>
-    <bragg_ad dt=\"0.1\" Nk=\"10\" output_freq=\"last\" pn_freq=\"last\" rabi_output_freq=\"each\"~@[ chirp_mode=\"1\" no_of_chirps=\"10\"~]>100</bragg_ad>
+    <bragg_ad dt=\"0.1\" Nk=\"10\" output_freq=\"last\" pn_freq=\"last\" rabi_output_freq=\"each\"~@[ chirp_mode=\"1\" no_of_chirps=\"30\"~]>100</bragg_ad>
   </SEQUENCE>
 </SIMULATION>"
                                  str g (/ time 2) chirp))))))
+
+(defun generate-more-chirp-xml (start end strength duration &optional (chirp 30) (g1 0.0))
+  (loop :for str :in (ensure-list strength)
+     :do (loop :for time :in (ensure-list duration)
+            :do (loop :for g :in (ensure-list g1)
+                   :do (loop :for run :from start :to end
+                          :do (with-open-file (out (format nil "~a/if-~@[~f-~]~@[chirp-~]~*~d~@[-g1-~f~]/more-chirps.xml"
+                                                    run str chirp time g)
+                                            :direction :output
+                                            :if-exists :supersede
+                                            :if-does-not-exist :create)
+                         (format out "<SIMULATION>
+  <DIM>1</DIM>
+  <FILENAME>~a.000_1.bin</FILENAME>
+  <FILENAME_2>../../inf_zero.bin</FILENAME_2>
+  <FILENAME_3>~:*~a.000_1.bin</FILENAME_3>
+  <FILENAME_4>../../inf_zero.bin</FILENAME_4>
+  <NOISE>../Noise.bin</NOISE>
+  <CONSTANTS>
+    <laser_k>8.05289</laser_k>
+    <laser_k_2>8.05289</laser_k_2>
+    <laser_domh>0.0471239</laser_domh>
+    <laser_domh_2>0.0471239</laser_domh_2>
+    <laser_dk>0</laser_dk>
+    <rabi_threshold>4</rabi_threshold>
+    <Noise_Amplitude>~f</Noise_Amplitude>
+  </CONSTANTS>
+  <VCONSTANTS>
+    <Amp_1>-14.0496,-14.0496</Amp_1>
+    <Amp_2>-14.0496,-14.0496</Amp_2>
+    <Alpha_1>0.000365368,0.000365368,0.000365368</Alpha_1>
+    <Alpha_2>0.000365368,0.000365368,0.000365368</Alpha_2>
+    <Delta_L>0,-6283.19,0,0</Delta_L>
+    <GS_1>~f,~:*~f,0,0,0,0</GS_1>
+    <GS_2>~:*~f,~:*~f,0,0,0,0</GS_2>
+    <GS_3>0,0,0,0,0,0</GS_3>
+    <GS_4>0,0,0,0,0,0</GS_4>
+    <GS_5>0,0,0,0,0,0</GS_5>
+    <GS_6>0,0,0,0,0,0</GS_6>
+    <Beta>0.0,0.0,0.0</Beta>
+  </VCONSTANTS>
+  <ALGORITHM>
+    <NX>16384</NX>
+    <NY>1</NY>
+    <NZ>1</NZ>
+    <XMIN>-320</XMIN>
+    <XMAX>320</XMAX>
+    <NK>25</NK>
+    <NA>700</NA>
+    <EPSILON>1e-6</EPSILON>
+  </ALGORITHM>
+  <SEQUENCE>
+    <bragg_ad dt=\"0.1\" Nk=\"10\" output_freq=\"last\" pn_freq=\"last\" rabi_output_freq=\"each\" chirp_mode=\"1\" no_of_chirps=\"~a\">100</bragg_ad>
+  </SEQUENCE>
+</SIMULATION>"
+                                 (+ time 300) str g chirp)))))))
 
 (defun bragg-solve (param-files)
   (loop :for file :in (ensure-list param-files)
@@ -310,6 +390,14 @@ noise-solver params.xml 1 20 cmd gpo3 100.000_1.bin > 100.000_1.txt
             (end (parse-integer (second args)))
             (param-files (subseq args 2)))
         (noise-solver start end param-files))
+      (print "noise-solver solve <start> <end> <param-files*>")))
+
+(defun chirp-helper (args)
+  (if args
+      (let ((start (parse-integer (first args)))
+            (end (parse-integer (second args)))
+            (param-files (subseq args 2)))
+        (chirp-solver start end param-files))
       (print "noise-solver solve <start> <end> <param-files*>")))
 
 (defun average-helper (args)
@@ -354,6 +442,7 @@ noise-solver params.xml 1 20 cmd gpo3 100.000_1.bin > 100.000_1.txt
   (switch ((first argv) :test #'string=)
     ("solve" (solve-helper (rest argv)))
     ("bragg-solve" (bragg-solve-helper (rest argv)))
+    ("chirp-solve" (chirp-helper (rest argv)))
     ("generate" (generate-helper (rest argv)))
     ("average" (average-helper (rest argv)))
     ("cmd" (cmd-helper (rest argv)))
