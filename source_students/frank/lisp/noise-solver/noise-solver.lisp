@@ -93,7 +93,7 @@ print \\\"Rabi done\\\"\"")
 
                                                                     :for s :in files
                                                                       :collect (cons file s))))
-                         (with-open-file (out (format nil "avg-~@[~a-~]~a" subdir filename)
+                         (with-open-file (out (ensure-directories-exist (format nil "avg-~a/~a" subdir filename))
                                               :direction :output :if-exists :supersede)
                            (loop :for lines = (loop :for file :in files
                                                  :collect (read-line file nil nil))
@@ -103,7 +103,7 @@ print \\\"Rabi done\\\"\"")
                                   (format out "~a~%" (first lines))
                                   (format out "~{~a~t~}~%"
                                           (avg-data (mapcar #'parse-data-line lines)))))
-                           (format t "Average written into avg-~a-~a~%" subdir filename)))
+                           (format t "Average written into avg-~a/~a~%" subdir filename)))
                (mapcar (lambda (x) (when (and (streamp x) (open-stream-p x)) (close x)))
                        files))))))
 
@@ -120,7 +120,7 @@ print \\\"Rabi done\\\"\"")
                                           (and (streamp fstream) (open-stream-p fstream)))
                                         files)
                            (error "Some files do not exist.~&~a" files))
-                         (with-open-file (out (format nil "avg-~@[~a-~]~a" subdir filename)
+                         (with-open-file (out (ensure-directories-exist (format nil "avg-~a/~a" subdir filename))
                                               :direction :output :if-exists :supersede
                                               :element-type '(unsigned-byte 8))
                            (let ((header (read-header (first files))))
@@ -133,7 +133,7 @@ print \\\"Rabi done\\\"\"")
                                                      (* (nDimX header) (nDimY header) (nDimZ header) 2))
                                  :do (write-float64 out (mean (loop :for file :in files
                                                            :collect (read-float64 file))))))
-                           (format t "Average written into avg-~a-~a~%" subdir filename)))
+                           (format t "Average written into avg-~a/~a~%" subdir filename)))
                (mapcar (lambda (x) (when (and (streamp x) (open-stream-p x)) (close x)))
                        files))))))
 
