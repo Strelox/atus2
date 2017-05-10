@@ -24,11 +24,11 @@
   (equal (elt line 0) #\#))
 
 (defun get-time ()
-  (multiple-value-bind (sec min hour) (decode-universal-time (get-universal-time))
-    (format nil "~a:~a:~a" hour min sec)))
+  (multiple-value-bind (sec min hour) (get-decoded-time)
+    (format nil "~2,'0d:~2,'0d:~2,'0d" hour min sec)))
 
 (defun run (cmd)
-  (format t "~&~a ~~$ ~a~%" (uiop:getcwd) cmd)
+  (format t "~&~a: ~a ~~$ ~a~%" (get-time) (uiop:getcwd) cmd)
   (uiop:run-program cmd
                     :output nil
                     :error-output nil))
@@ -203,17 +203,15 @@ noise-solver params.xml 1 20 cmd gpo3 100.000_1.bin > 100.000_1.txt
         (error "Not a number: ~a" num))))
 
 (defun visibility (path)
-  (with-open-file (in path)
-    (read-line in) ;; Skip comment
-    (let* ((data (loop :for num = (read-number in)
-                    :while num
-                    :do (read-number in)
-                    :collect (read-number in)
-                    :do (read-number in)
-                    (read-number in)))
-           (imax (apply #'max data))
-           (imin (apply #'min data)))
-      (/ (- imax imin) (+ imax imin)))))
+  (uiop:with-current-directory (path)
+          (run (format nil "/home/strelox/bin/interpol_chirp ~a" path))
+          (with-open-file (in "Chirp_interpol.txt")
+            (let* ((data (loop :for num = (read-number in)
+                            :while num
+                            :collect (read-number in)))
+                   (imax (apply #'max data))
+                   (imin (apply #'min data)))
+              (/ (- imax imin) (+ imax imin))))))
 
 (defun get-bragg-visibility (strength duration g1)
   (with-open-file (out "visibility-fourier-g1-0.0001.txt" :direction :output
@@ -307,11 +305,11 @@ noise-solver params.xml 1 20 cmd gpo3 100.000_1.bin > 100.000_1.txt
     <EPSILON>1e-6</EPSILON>
   </ALGORITHM>
   <SEQUENCE>
-    <bragg_ad dt=\"0.1\" Nk=\"10\" output_freq=\"last\" pn_freq=\"last\" rabi_output_freq=\"each\">100</bragg_ad>
+    <bragg_ad dt=\"0.1\" Nk=\"10\" output_freq=\"each\" pn_freq=\"last\" rabi_output_freq=\"each\">100</bragg_ad>
     <freeprop dt=\"1\" Nk=\"100\" output_freq=\"each\" pn_freq=\"last\">~d</freeprop>
-    <bragg_ad dt=\"0.1\" Nk=\"10\" output_freq=\"last\" pn_freq=\"last\" rabi_output_freq=\"last\" >200</bragg_ad>
+    <bragg_ad dt=\"0.1\" Nk=\"10\" output_freq=\"each\" pn_freq=\"last\" rabi_output_freq=\"last\" >200</bragg_ad>
     <freeprop dt=\"1\" Nk=\"100\" output_freq=\"each\" pn_freq=\"last\">~:*~d</freeprop>
-    <bragg_ad dt=\"0.1\" Nk=\"10\" output_freq=\"last\" pn_freq=\"last\" rabi_output_freq=\"each\"~@[ chirp_mode=\"1\" no_of_chirps=\"30\"~]>100</bragg_ad>
+    <bragg_ad dt=\"0.1\" Nk=\"10\" output_freq=\"each\" pn_freq=\"last\" rabi_output_freq=\"each\"~@[ chirp_mode=\"1\" no_of_chirps=\"10\"~]>100</bragg_ad>
   </SEQUENCE>
 </SIMULATION>"
                                  str g (/ time 2) chirp))))))
@@ -367,7 +365,7 @@ noise-solver params.xml 1 20 cmd gpo3 100.000_1.bin > 100.000_1.txt
     <EPSILON>1e-6</EPSILON>
   </ALGORITHM>
   <SEQUENCE>
-    <bragg_ad dt=\"0.1\" Nk=\"10\" output_freq=\"last\" pn_freq=\"last\" rabi_output_freq=\"each\" chirp_mode=\"1\" no_of_chirps=\"~a\">100</bragg_ad>
+    <bragg_ad dt=\"0.1\" Nk=\"10\" output_freq=\"each\" pn_freq=\"last\" rabi_output_freq=\"each\" chirp_mode=\"1\" no_of_chirps=\"~a\">100</bragg_ad>
   </SEQUENCE>
 </SIMULATION>"
                                  (+ time 300) str g chirp)))))))
