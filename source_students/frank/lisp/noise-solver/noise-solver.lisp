@@ -204,7 +204,7 @@ noise-solver params.xml 1 20 cmd gpo3 100.000_1.bin > 100.000_1.txt
 
 (defun visibility (path)
   (uiop:with-current-directory (path)
-          (run (format nil "/home/strelox/bin/interpol_chirp ~a" path))
+          (run (format nil "interpol_chirp Chirp_5.txt"))
           (with-open-file (in "Chirp_interpol.txt")
             (let* ((data (loop :for num = (read-number in)
                             :while num
