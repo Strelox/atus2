@@ -111,8 +111,8 @@ int main(int argc, char *argv[])
   double* interpolft_in = interpol_ft.Getp2InReal();
 
   ofstream file1("Chirp_interpol.txt");
-  if (file1_count.fail()) {
-    std::cout << "Error opening file: " << Chirp_interpol.txt << std::endl;
+  if (file1.fail()) {
+    std::cout << "Error opening file: " << "Chirp_interpol.txt" << std::endl;
     abort();
   }
   for (int i = 0; i < interpol_ft.Get_Dim_X(); i++) {
