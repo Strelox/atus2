@@ -93,6 +93,10 @@ namespace RT_Solver
     expansion = chunk_expansion;
 
     fnoise.open( filename, ifstream::binary );
+    if (fnoise.fail()) {
+      std::cout << "File not found: " << filename << std::endl;
+      abort();
+    }
     fnoise.read( (char*)&source_header, sizeof(generic_header) );
 
     chunk_size = source_header.nDimX/no_of_chunks;
