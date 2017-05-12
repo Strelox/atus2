@@ -101,6 +101,10 @@ int main(int argc, char *argv[])
   generic_header header = {};
   {
     ifstream fheader(wavefun, ifstream::binary );
+    if (fheader.fail()) {
+      std::cout << "File not found: " << wavefun << std::endl;
+      abort();
+    }
     fheader.read( (char*)&header, sizeof(generic_header));
     fheader.close();
   }

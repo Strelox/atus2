@@ -48,6 +48,10 @@ int main(int argc, char *argv[])
   string sgarbage;
   double garbage;
   ifstream fdata_count(argv[1]);
+  if (fdata_count.fail()) {
+    std::cout << "File not found: " << argv[1] << std::endl;
+    abort();
+  }
   int count =0;
   getline(fdata_count, sgarbage);
   getline(fdata_count, sgarbage);
@@ -77,6 +81,10 @@ int main(int argc, char *argv[])
   double* data = ft.Getp2InReal();
 
   ifstream fdata(argv[1]);
+  if (fdata.fail()) {
+    std::cout << "File not found: " << argv[1] << std::endl;
+    abort();
+  }
   getline(fdata, sgarbage);
   for (int i = 0; i < header.nDimX; i++) {
     fdata >> garbage;
@@ -103,6 +111,10 @@ int main(int argc, char *argv[])
   double* interpolft_in = interpol_ft.Getp2InReal();
 
   ofstream file1("Chirp_interpol.txt");
+  if (file1_count.fail()) {
+    std::cout << "Error opening file: " << Chirp_interpol.txt << std::endl;
+    abort();
+  }
   for (int i = 0; i < interpol_ft.Get_Dim_X(); i++) {
     file1 << header_interpol.xMin+header_interpol.dx*i << "\t" << interpolft_in[i] << std::endl;
   }

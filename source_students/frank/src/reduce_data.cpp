@@ -48,6 +48,10 @@ int main(int argc, char *argv[])
 
   generic_header header;
   ifstream fsignal(argv[1], ifstream::binary );
+  if (fsignal.fail()) {
+    std::cout << "File not found: " << argv[1] << std::endl;
+    abort();
+  }
   fsignal.read( (char*)&header, sizeof(generic_header));
   long NX = header.nDimX;
   long NY = header.nDimY;

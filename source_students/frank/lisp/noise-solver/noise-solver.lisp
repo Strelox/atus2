@@ -214,7 +214,7 @@ noise-solver params.xml 1 20 cmd gpo3 100.000_1.bin > 100.000_1.txt
               (/ (- imax imin) (+ imax imin))))))
 
 (defun get-bragg-visibility (strength duration g1)
-  (with-open-file (out "visibility-fourier-g1-0.0001.txt" :direction :output
+  (with-open-file (out (format nil "visibility-fourier-g1-~a.txt" g1) :direction :output
                        :if-exists :supersede :if-does-not-exist :create)
                 (loop :for time :in (ensure-list duration)
                  :for file = (format nil "fourier/if-~f-chirp-~d~@[-g1-~f~]/Chirp_5.txt"
@@ -255,6 +255,8 @@ noise-solver params.xml 1 20 cmd gpo3 100.000_1.bin > 100.000_1.txt
      :for subdir = (format nil "if-~@[~a-~]chirp-~a~@[-g1-~a~]" strength time g1)
      :do (average-data start end filename subdir)))
 
+(defvar *duration* (list 5000 10000 15000 20000 25000 30000 35000 40000 45000 50000 55000 60000 65000 70000 75000 80000))
+(defvar *duration2* (list 10000 15000 20000 25000 30000 35000 40000 45000 50000 80000))
 (defun generate-xml (strength duration &optional (chirp t) (g1 0.0))
   (loop :for str :in (ensure-list strength)
      :do (loop :for time :in (ensure-list duration)

@@ -57,6 +57,10 @@ int main(int argc, char *argv[])
     std::cout << foo << std::endl;
     generic_header header;
     std::ifstream fdata(foo, ifstream::binary );
+    if (fdata.fail()) {
+      std::cout << "File not found: " << foo << std::endl;
+      abort();
+    }
     fdata.read( (char*)&header, sizeof(generic_header));
 
     int NX = header.nDimX;
