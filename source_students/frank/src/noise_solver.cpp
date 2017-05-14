@@ -817,6 +817,7 @@ namespace RT_Solver
     lis_solver_get_residualnorm(m_solver,&resid);
     if (iter > 1000) {
       printf("%f, Iter: %i\n", m_header.t, iter);
+      abort();
     }
 
   }
@@ -862,6 +863,10 @@ namespace RT_Solver
         m_dx2_noise[i] = diff_noise[i];
       }
 
+      // set_cn_matrix_with_metric_noise(m_cn_rA, -1);
+      // set_cn_matrix_with_metric_noise(m_cn_lA, +1);
+    }
+    if (update_noise) {
       set_cn_matrix_with_metric_noise(m_cn_rA, -1);
       set_cn_matrix_with_metric_noise(m_cn_lA, +1);
     }
