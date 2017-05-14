@@ -48,7 +48,9 @@ print \\\"Noise done\\\";")
 (defun link-to (path start end)
   (loop :for i :from start :to end
      :do (ensure-directories-exist (format nil "~a/" i))
-     (run (format nil "ln -fs ../~a/~a/Noise.bin ~:*~a/Noise.bin" path i))))
+     (if (uiop:absolute-pathname-p path)
+         (run (format nil "ln -fs ~a/~a/Noise.bin ~:*~a/Noise.bin" path i))
+         (run (format nil "ln -fs ../~a/~a/Noise.bin ~:*~a/Noise.bin" path i)))))
 
 (defvar *rabi.gpl* "gnuplot -e \"set terminal png;
 set output \\\"Rabi.png\\\";
