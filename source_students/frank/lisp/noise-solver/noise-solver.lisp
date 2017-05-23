@@ -209,6 +209,15 @@ noise-solver params.xml 1 20 cmd gpo3 100.000_1.bin > 100.000_1.txt
         num
         (error "Not a number: ~a" num))))
 
+(defun rms (&rest numbers)
+  "Calculates root means squared of numbers"
+  (if (null numbers)
+      0
+      (sqrt (/ (reduce (lambda (base elem)
+                         (+ base (expt elem 2)))
+                       numbers :initial-value 0)
+             (length numbers)))))
+
 (defun diff-visibility (file1 file2)
   (with-open-file (out (format nil "diff-~a.txt" (pathname-name file2))
                        :direction :output
@@ -219,21 +228,47 @@ noise-solver params.xml 1 20 cmd gpo3 100.000_1.bin > 100.000_1.txt
         (loop
            :for line2 = (read-line in2 nil nil)
            :while line2
-           :for (x2 start2) = (multiple-value-list (read-from-string line2))
-           :for y2 = (read-from-string line2 t nil :start start2)
+           :for (x2 y2) = (parse-data-line line2)
            :do (loop
                   :for line1 = (read-line in1 nil nil)
                   :while line1
-                  :for (x1 start1) = (multiple-value-list (read-from-string line1))
-                  :for y1 = (read-from-string line1 t nil :start start1)
+                  :for (x1 y1) = (parse-data-line line1)
                   :when (= x1 x2)
+                  :unless (> 65000 x1 45000)
                   :do
                   (format out "~a ~a ~a ~a~%"
                           x1
-                          (expt (abs (- y1 y2)) 2)
-                          (abs (- y1 y2))
-                          (- y1 y2))
+                          (rms y1))
                   (return-from nil))
+           (file-position in1 0))))))
+
+(defun diff-visibility2 (file1 file2)
+  (with-open-file (out (format nil "diff2-~a.txt" (pathname-name file2))
+                       :direction :output
+                       :if-exists :supersede
+                       :if-does-not-exist :create)
+    (with-open-file (in1 file1)
+      (with-open-file (in2 file2)
+        (loop
+           :for line2 = (read-line in2 nil nil)
+           :while line2
+           :for (x2 . y2) = (parse-data-line line2)
+           :do (loop
+                  :for line1 = (read-line in1 nil nil)
+                  :while line1
+                  :for (x1 y1) = (parse-data-line line1)
+                  :when (= x1 x2)
+                  :unless (> 65000 x1 45000)
+                  :do
+                  (let ((diff (mapcar (lambda (y) (abs (- y y1)))
+                                      y2)))
+                    (format out "~a ~a ~a ~a ~a~%"
+                            x1
+                            (apply #'rms diff)
+                            (mean diff)
+                            (variance diff)
+                            (standard-deviation diff))
+                    (return-from nil)))
            (file-position in1 0))))))
 
 (defun visibility (path)
